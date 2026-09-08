@@ -1,0 +1,19 @@
+node_modules/
+.next/
+out/
+.env
+.env.local
+
+# extra
+dist
+.env.*
+!.env.example
+*.db
+*.db-journal
+prisma/*.db
+prisma/*.db-journal
+uploads/*
+!uploads/.gitkeep
+.DS_Store
+*.log
+*.tsbuildinfo

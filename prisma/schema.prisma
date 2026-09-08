@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mongodb"
+  url      = env("DATABASE_URL")
+}
+
+model Post {
+  id          String    @id @default(auto()) @map("_id") @db.ObjectId
+  slug        String    @unique
+  title       String
+  excerpt     String
+  body        String
+  coverImage  String    @default("")
+  tag         String    @default("")
+  author      String    @default("")
+  published   Boolean   @default(false)
+  featured    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  publishedAt DateTime?
+}
+
+model Influencer {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  slug       String   @unique
+  name       String
+  bio        String   @default("")
+  category   String   @default("")
+  region     String   @default("india")
+  location   String   @default("")
+  followers  String   @default("")
+  platform   String   @default("Instagram")
+  image      String   @default("")
+  rating     String   @default("5.0")
+  published  Boolean  @default(false)
+  featured   Boolean  @default(false)
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model Contact {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  name      String
+  email     String
+  company   String   @default("")
+  need      String   @default("Not sure")
+  message   String
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model Service {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  slug      String
+  audience  String
+  title     String
+  tagline   String   @default("")
+  excerpt   String   @default("")
+  body      String   @default("")
+  image     String   @default("")
+  video     String   @default("")
+  sortOrder Int      @default(0)
+  published Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([audience, slug])
+}
