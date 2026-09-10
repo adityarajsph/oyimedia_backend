@@ -1,24 +1,11 @@
 import { Router } from "express";
-import multer from "multer";
-import path from "node:path";
 
 import { prisma } from "../lib/prisma";
 import { slugify } from "../lib/slugify";
+import { imageUpload } from "../lib/upload";
 import { requireAdmin } from "../middleware/auth";
 
 export const adminPostsRouter = Router();
-
-const upload = multer({
-  dest: path.join(process.cwd(), "uploads"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      cb(new Error("Only image uploads are allowed"));
-      return;
-    }
-    cb(null, true);
-  },
-});
 
 adminPostsRouter.use(requireAdmin);
 
@@ -47,7 +34,7 @@ adminPostsRouter.post("/", async (req, res) => {
     return;
   }
 
-  const slug = slugify(String(req.body?.slug ?? title));
+  const slug = slugify(String(req.body?.slug || title));
   const published = Boolean(req.body?.published);
 
   try {
@@ -55,11 +42,11 @@ adminPostsRouter.post("/", async (req, res) => {
       data: {
         title,
         slug,
-        excerpt: String(req.body?.excerpt ?? ""),
-        body: String(req.body?.body ?? ""),
-        coverImage: String(req.body?.coverImage ?? ""),
-        tag: String(req.body?.tag ?? ""),
-        author: String(req.body?.author ?? ""),
+        excerpt: String(req.body?.excerpt ?? "").trim(),
+        body: String(req.body?.body ?? "").trim(),
+        coverImage: String(req.body?.coverImage ?? "").trim(),
+        tag: String(req.body?.tag ?? "").trim(),
+        author: String(req.body?.author ?? "").trim(),
         featured: Boolean(req.body?.featured),
         published,
         publishedAt: published ? new Date() : null,
@@ -93,12 +80,13 @@ adminPostsRouter.put("/:id", async (req, res) => {
       where: { id: req.params.id },
       data: {
         title,
-        slug: slugify(String(req.body?.slug ?? title)),
-        excerpt: String(req.body?.excerpt ?? ""),
-        body: String(req.body?.body ?? ""),
-        coverImage: String(req.body?.coverImage ?? existing.coverImage),
-        tag: String(req.body?.tag ?? ""),
-        author: String(req.body?.author ?? ""),
+        slug: slugify(String(req.body?.slug || title)),
+        excerpt: String(req.body?.excerpt ?? "").trim(),
+        body: String(req.body?.body ?? "").trim(),
+        coverImage:
+          String(req.body?.coverImage ?? "").trim() || existing.coverImage,
+        tag: String(req.body?.tag ?? "").trim(),
+        author: String(req.body?.author ?? "").trim(),
         featured: Boolean(req.body?.featured),
         published,
         publishedAt: published
@@ -141,7 +129,7 @@ adminPostsRouter.patch("/:id/publish", async (req, res) => {
   res.json(post);
 });
 
-adminPostsRouter.post("/:id/image", upload.single("image"), async (req, res) => {
+adminPostsRouter.post("/:id/image", imageUpload.single("image"), async (req, res) => {
   if (!req.file) {
     res.status(400).json({ error: "Image file is required" });
     return;

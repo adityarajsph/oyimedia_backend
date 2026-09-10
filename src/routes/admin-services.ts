@@ -1,24 +1,11 @@
 import { Router } from "express";
-import multer from "multer";
-import path from "node:path";
 
 import { prisma } from "../lib/prisma";
 import { slugify } from "../lib/slugify";
+import { imageUpload } from "../lib/upload";
 import { requireAdmin } from "../middleware/auth";
 
 export const adminServicesRouter = Router();
-
-const upload = multer({
-  dest: path.join(process.cwd(), "uploads"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      cb(new Error("Only image uploads are allowed"));
-      return;
-    }
-    cb(null, true);
-  },
-});
 
 adminServicesRouter.use(requireAdmin);
 
@@ -27,13 +14,13 @@ function payload(body: Record<string, unknown>, title: string) {
     String(body.audience ?? "brand") === "creators" ? "creators" : "brand";
   return {
     title,
-    slug: slugify(String(body.slug ?? title)),
+    slug: slugify(String(body.slug || title)),
     audience,
-    tagline: String(body.tagline ?? ""),
-    excerpt: String(body.excerpt ?? ""),
-    body: String(body.body ?? ""),
-    image: String(body.image ?? ""),
-    video: String(body.video ?? ""),
+    tagline: String(body.tagline ?? "").trim(),
+    excerpt: String(body.excerpt ?? "").trim(),
+    body: String(body.body ?? "").trim(),
+    image: String(body.image ?? "").trim(),
+    video: String(body.video ?? "").trim(),
     sortOrder: Number(body.sortOrder ?? 0) || 0,
     published: Boolean(body.published),
   };
@@ -121,7 +108,7 @@ adminServicesRouter.patch("/:id/publish", async (req, res) => {
 
 adminServicesRouter.post(
   "/:id/image",
-  upload.single("image"),
+  imageUpload.single("image"),
   async (req, res) => {
     if (!req.file) {
       res.status(400).json({ error: "Image file is required" });

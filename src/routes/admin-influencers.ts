@@ -1,24 +1,11 @@
 import { Router } from "express";
-import multer from "multer";
-import path from "node:path";
 
 import { prisma } from "../lib/prisma";
 import { slugify } from "../lib/slugify";
+import { imageUpload } from "../lib/upload";
 import { requireAdmin } from "../middleware/auth";
 
 export const adminInfluencersRouter = Router();
-
-const upload = multer({
-  dest: path.join(process.cwd(), "uploads"),
-  limits: { fileSize: 5 * 1024 * 1024 },
-  fileFilter: (_req, file, cb) => {
-    if (!file.mimetype.startsWith("image/")) {
-      cb(new Error("Only image uploads are allowed"));
-      return;
-    }
-    cb(null, true);
-  },
-});
 
 adminInfluencersRouter.use(requireAdmin);
 
@@ -29,15 +16,15 @@ function payload(body: Record<string, unknown>, name: string) {
       : "india";
   return {
     name,
-    slug: slugify(String(body.slug ?? name)),
-    bio: String(body.bio ?? ""),
-    category: String(body.category ?? ""),
+    slug: slugify(String(body.slug || name)),
+    bio: String(body.bio ?? "").trim(),
+    category: String(body.category ?? "").trim(),
     region,
-    location: String(body.location ?? ""),
-    followers: String(body.followers ?? ""),
-    platform: String(body.platform ?? "Instagram"),
+    location: String(body.location ?? "").trim(),
+    followers: String(body.followers ?? "").trim(),
+    platform: String(body.platform ?? "Instagram").trim() || "Instagram",
     image: String(body.image ?? ""),
-    rating: String(body.rating ?? "5.0"),
+    rating: String(body.rating ?? "5.0").trim() || "5.0",
     featured: Boolean(body.featured),
     published: Boolean(body.published),
   };
@@ -83,14 +70,22 @@ adminInfluencersRouter.put("/:id", async (req, res) => {
     res.status(400).json({ error: "Name is required" });
     return;
   }
+  const existing = await prisma.influencer.findUnique({
+    where: { id: req.params.id },
+  });
+  if (!existing) {
+    res.status(404).json({ error: "Influencer not found" });
+    return;
+  }
   try {
+    const data = payload(req.body as Record<string, unknown>, name);
     const item = await prisma.influencer.update({
       where: { id: req.params.id },
-      data: payload(req.body as Record<string, unknown>, name),
+      data: { ...data, image: data.image || existing.image },
     });
     res.json(item);
   } catch {
-    res.status(404).json({ error: "Influencer not found" });
+    res.status(409).json({ error: "A profile with that slug already exists" });
   }
 });
 
@@ -117,7 +112,7 @@ adminInfluencersRouter.patch("/:id/publish", async (req, res) => {
 
 adminInfluencersRouter.post(
   "/:id/image",
-  upload.single("image"),
+  imageUpload.single("image"),
   async (req, res) => {
     if (!req.file) {
       res.status(400).json({ error: "Image file is required" });
