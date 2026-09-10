@@ -1,0 +1,35 @@
+name: Deploy API
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-production
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Deploy to EC2
+        uses: appleboy/ssh-action@v1.2.2
+        with:
+          host: ${{ secrets.EC2_HOST }}
+          username: ${{ secrets.EC2_USER }}
+          key: ${{ secrets.EC2_SSH_KEY }}
+          script_stop: true
+          command_timeout: 10m
+          script: |
+            set -euo pipefail
+            export NVM_DIR="$HOME/.nvm"
+            # shellcheck disable=SC1091
+            . "$NVM_DIR/nvm.sh"
+            cd "$HOME/OYI-Media-Backend-master"
+            git fetch origin
+            git reset --hard origin/main
+            chmod +x deploy/update.sh
+            ./deploy/update.sh
