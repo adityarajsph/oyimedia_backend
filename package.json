@@ -9,12 +9,14 @@
     "postinstall": "prisma generate",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
-    "db:seed": "prisma db seed"
+    "db:seed": "prisma db seed",
+    "s3:migrate": "tsx scripts/migrate-uploads-to-s3.ts"
   },
   "prisma": {
     "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1130.0",
     "@prisma/client": "^6.16.0",
     "cors": "^2.8.5",
     "dotenv": "^17.2.1",

@@ -2,7 +2,7 @@ import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
 import { slugify } from "../lib/slugify";
-import { imageUpload } from "../lib/upload";
+import { imageUpload, storeImage } from "../lib/upload";
 import { requireAdmin } from "../middleware/auth";
 
 export const adminServicesRouter = Router();
@@ -115,9 +115,10 @@ adminServicesRouter.post(
       return;
     }
     try {
+      const image = await storeImage(req.file);
       const item = await prisma.service.update({
         where: { id: req.params.id },
-        data: { image: `/uploads/${req.file.filename}` },
+        data: { image },
       });
       res.json(item);
     } catch {
