@@ -4,6 +4,7 @@ import express from "express";
 import path from "node:path";
 
 import { prisma } from "./lib/prisma";
+import { startPublishWorker } from "./lib/scheduler";
 import { adminContactsRouter } from "./routes/admin-contacts";
 import { adminInfluencersRouter } from "./routes/admin-influencers";
 import { adminPostsRouter } from "./routes/admin-posts";
@@ -55,7 +56,10 @@ const server = app.listen(port, host, () => {
   console.log(`OYI Media API running on http://${host}:${port}`);
 });
 
+const publishWorker = startPublishWorker();
+
 async function shutdown() {
+  clearInterval(publishWorker);
   server.close();
   await prisma.$disconnect();
   process.exit(0);

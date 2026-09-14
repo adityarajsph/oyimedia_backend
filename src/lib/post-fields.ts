@@ -56,5 +56,15 @@ export function postSeoFields(body: Record<string, unknown>) {
     tocEnabled: flag(body, "tocEnabled", true),
     relatedPostIds: ids(body.relatedPostIds),
     relatedServiceIds: ids(body.relatedServiceIds),
+    scheduledAt: scheduledValue(body, flag(body, "published", false)),
   };
+}
+
+export function scheduledValue(body: Record<string, unknown>, published: boolean) {
+  if (published) return null;
+  const raw = String(body.scheduledAt ?? "").trim();
+  if (!raw) return null;
+  const date = new Date(raw);
+  if (Number.isNaN(date.getTime())) return null;
+  return date;
 }

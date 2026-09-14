@@ -1,6 +1,7 @@
 import { Router } from "express";
 
 import { prisma } from "../lib/prisma";
+import { scoreText, tokensFrom } from "../lib/suggest";
 import { requireAdmin } from "../middleware/auth";
 
 export const adminSearchRouter = Router();
@@ -74,4 +75,85 @@ adminSearchRouter.get("/pages", async (req, res) => {
       published: service.published,
     })),
   });
+});
+
+adminSearchRouter.post("/suggest", async (req, res) => {
+  const title = String(req.body?.title ?? "");
+  const body = String(req.body?.body ?? "");
+  const focusKeyword = String(req.body?.focusKeyword ?? "").trim();
+  const excludePostId = String(req.body?.excludePostId ?? "").trim();
+  const words = [...new Set(tokensFrom(`${title} ${focusKeyword} ${body}`))].slice(
+    0,
+    40
+  );
+
+  const [posts, services] = await Promise.all([
+    prisma.post.findMany({
+      where: {
+        published: true,
+        ...(excludePostId ? { id: { not: excludePostId } } : {}),
+      },
+      select: {
+        title: true,
+        slug: true,
+        excerpt: true,
+        tag: true,
+        tags: true,
+        focusKeyword: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 80,
+    }),
+    prisma.service.findMany({
+      where: { published: true },
+      select: {
+        title: true,
+        slug: true,
+        audience: true,
+        excerpt: true,
+        tagline: true,
+      },
+      orderBy: { updatedAt: "desc" },
+      take: 80,
+    }),
+  ]);
+
+  const anchor = (itemTitle: string) =>
+    focusKeyword && itemTitle.toLowerCase().includes(focusKeyword.toLowerCase())
+      ? focusKeyword
+      : itemTitle;
+
+  const blogs = posts
+    .map((post) => ({
+      title: post.title,
+      url: `/blogs/${post.slug}`,
+      type: "blog",
+      suggestedAnchor: anchor(post.title),
+      score: scoreText(
+        `${post.title} ${post.excerpt} ${post.tag} ${post.tags} ${post.focusKeyword}`,
+        words
+      ),
+    }))
+    .filter((item) => words.length === 0 || item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 6)
+    .map(({ score: _score, ...item }) => item);
+
+  const suggestedServices = services
+    .map((service) => ({
+      title: service.title,
+      url: `/services/${service.audience}/${service.slug}`,
+      type: "service",
+      suggestedAnchor: anchor(service.title),
+      score: scoreText(
+        `${service.title} ${service.excerpt} ${service.tagline}`,
+        words
+      ),
+    }))
+    .filter((item) => words.length === 0 || item.score > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 4)
+    .map(({ score: _score, ...item }) => item);
+
+  res.json({ blogs, services: suggestedServices });
 });

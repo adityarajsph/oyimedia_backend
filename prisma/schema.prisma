@@ -41,9 +41,17 @@ model Post {
   tocEnabled         Boolean   @default(true)
   relatedPostIds     String[]  @default([])
   relatedServiceIds  String[]  @default([])
+  scheduledAt        DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
   publishedAt        DateTime?
+}
+
+model PostRevision {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  postId    String
+  snapshot  String
+  createdAt DateTime @default(now())
 }
 
 model PostRedirect {
