@@ -8,19 +8,59 @@ datasource db {
 }
 
 model Post {
-  id          String    @id @default(auto()) @map("_id") @db.ObjectId
-  slug        String    @unique
-  title       String
-  excerpt     String
-  body        String
-  coverImage  String    @default("")
-  tag         String    @default("")
-  author      String    @default("")
-  published   Boolean   @default(false)
-  featured    Boolean   @default(false)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  publishedAt DateTime?
+  id                 String    @id @default(auto()) @map("_id") @db.ObjectId
+  slug               String    @unique
+  title              String
+  excerpt            String
+  body               String
+  coverImage         String    @default("")
+  coverImageAlt      String    @default("")
+  coverImageTitle    String    @default("")
+  coverImageCaption  String    @default("")
+  coverImageDescription String @default("")
+  tag                String    @default("")
+  tags               String    @default("")
+  author             String    @default("")
+  published          Boolean   @default(false)
+  featured           Boolean   @default(false)
+  seoTitle           String    @default("")
+  metaDescription    String    @default("")
+  canonicalUrl       String    @default("")
+  focusKeyword       String    @default("")
+  secondaryKeywords  String    @default("")
+  ogTitle            String    @default("")
+  ogDescription      String    @default("")
+  ogImage            String    @default("")
+  twitterTitle       String    @default("")
+  twitterDescription String    @default("")
+  twitterImage       String    @default("")
+  twitterCard        String    @default("summary_large_image")
+  robotsIndex        Boolean   @default(true)
+  robotsFollow       Boolean   @default(true)
+  schemaType         String    @default("BlogPosting")
+  tocEnabled         Boolean   @default(true)
+  relatedPostIds     String[]  @default([])
+  relatedServiceIds  String[]  @default([])
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  publishedAt        DateTime?
+}
+
+model PostRedirect {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  fromSlug  String   @unique
+  toSlug    String
+  createdAt DateTime @default(now())
+}
+
+model MediaAsset {
+  id          String   @id @default(auto()) @map("_id") @db.ObjectId
+  url         String
+  alt         String   @default("")
+  title       String   @default("")
+  caption     String   @default("")
+  description String   @default("")
+  createdAt   DateTime @default(now())
 }
 
 model Influencer {

@@ -1,5 +1,6 @@
 import { Router } from "express";
 
+import { postSeoFields } from "../lib/post-fields";
 import { prisma } from "../lib/prisma";
 import { slugify } from "../lib/slugify";
 import { imageUpload, storeImage } from "../lib/upload";
@@ -8,6 +9,20 @@ import { requireAdmin } from "../middleware/auth";
 export const adminPostsRouter = Router();
 
 adminPostsRouter.use(requireAdmin);
+
+function coreFields(body: Record<string, unknown>, title: string) {
+  return {
+    title,
+    slug: slugify(String(body.slug || title)),
+    excerpt: String(body.excerpt ?? "").trim(),
+    body: String(body.body ?? "").trim(),
+    coverImage: String(body.coverImage ?? "").trim(),
+    tag: String(body.tag ?? "").trim(),
+    author: String(body.author ?? "").trim(),
+    featured: Boolean(body.featured),
+    ...postSeoFields(body),
+  };
+}
 
 adminPostsRouter.get("/", async (_req, res) => {
   const posts = await prisma.post.findMany({
@@ -34,20 +49,13 @@ adminPostsRouter.post("/", async (req, res) => {
     return;
   }
 
-  const slug = slugify(String(req.body?.slug || title));
   const published = Boolean(req.body?.published);
+  const data = coreFields(req.body as Record<string, unknown>, title);
 
   try {
     const post = await prisma.post.create({
       data: {
-        title,
-        slug,
-        excerpt: String(req.body?.excerpt ?? "").trim(),
-        body: String(req.body?.body ?? "").trim(),
-        coverImage: String(req.body?.coverImage ?? "").trim(),
-        tag: String(req.body?.tag ?? "").trim(),
-        author: String(req.body?.author ?? "").trim(),
-        featured: Boolean(req.body?.featured),
+        ...data,
         published,
         publishedAt: published ? new Date() : null,
       },
@@ -74,26 +82,28 @@ adminPostsRouter.put("/:id", async (req, res) => {
   }
 
   const published = Boolean(req.body?.published);
+  const data = coreFields(req.body as Record<string, unknown>, title);
+  const slugChanged = data.slug !== existing.slug;
 
   try {
     const post = await prisma.post.update({
       where: { id: req.params.id },
       data: {
-        title,
-        slug: slugify(String(req.body?.slug || title)),
-        excerpt: String(req.body?.excerpt ?? "").trim(),
-        body: String(req.body?.body ?? "").trim(),
-        coverImage:
-          String(req.body?.coverImage ?? "").trim() || existing.coverImage,
-        tag: String(req.body?.tag ?? "").trim(),
-        author: String(req.body?.author ?? "").trim(),
-        featured: Boolean(req.body?.featured),
+        ...data,
+        coverImage: data.coverImage || existing.coverImage,
         published,
-        publishedAt: published
-          ? (existing.publishedAt ?? new Date())
-          : null,
+        publishedAt: published ? (existing.publishedAt ?? new Date()) : null,
       },
     });
+
+    if (slugChanged && existing.published) {
+      await prisma.postRedirect.upsert({
+        where: { fromSlug: existing.slug },
+        update: { toSlug: post.slug },
+        create: { fromSlug: existing.slug, toSlug: post.slug },
+      });
+    }
+
     res.json(post);
   } catch {
     res.status(409).json({ error: "A post with that slug already exists" });

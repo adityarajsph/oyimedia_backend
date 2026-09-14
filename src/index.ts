@@ -7,6 +7,8 @@ import { prisma } from "./lib/prisma";
 import { adminContactsRouter } from "./routes/admin-contacts";
 import { adminInfluencersRouter } from "./routes/admin-influencers";
 import { adminPostsRouter } from "./routes/admin-posts";
+import { adminMediaRouter } from "./routes/admin-media";
+import { adminSearchRouter } from "./routes/admin-search";
 import { adminServicesRouter } from "./routes/admin-services";
 import { authRouter } from "./routes/auth";
 import { contactsRouter } from "./routes/contacts";
@@ -26,7 +28,7 @@ app.use(
       .map((origin) => origin.trim()),
   })
 );
-app.use(express.json({ limit: "2mb" }));
+app.use(express.json({ limit: "5mb" }));
 app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 app.get("/", (_req, res) => {
@@ -43,6 +45,8 @@ app.use("/api/contact", contactsRouter);
 app.use("/api/services", servicesRouter);
 app.use("/api/admin", authRouter);
 app.use("/api/admin/posts", adminPostsRouter);
+app.use("/api/admin/media", adminMediaRouter);
+app.use("/api/admin/search", adminSearchRouter);
 app.use("/api/admin/influencers", adminInfluencersRouter);
 app.use("/api/admin/contacts", adminContactsRouter);
 app.use("/api/admin/services", adminServicesRouter);
