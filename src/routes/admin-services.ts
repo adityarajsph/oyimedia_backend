@@ -1,9 +1,30 @@
 import { Router } from "express";
+import type { NextFunction, Request, Response } from "express";
 
 import { prisma } from "../lib/prisma";
 import { slugify } from "../lib/slugify";
-import { imageUpload, storeImage } from "../lib/upload";
+import { imageUpload, storeImage, storeVideo, videoUpload } from "../lib/upload";
 import { requireAdmin } from "../middleware/auth";
+
+function acceptVideo(req: Request, res: Response, next: NextFunction) {
+  videoUpload.single("video")(req, res, (err: unknown) => {
+    if (!err) {
+      next();
+      return;
+    }
+    const code =
+      err && typeof err === "object" && "code" in err
+        ? String((err as { code: string }).code)
+        : "";
+    if (code === "LIMIT_FILE_SIZE") {
+      res.status(400).json({ error: "Video must be 80MB or smaller" });
+      return;
+    }
+    res.status(400).json({
+      error: err instanceof Error ? err.message : "Video upload failed",
+    });
+  });
+}
 
 export const adminServicesRouter = Router();
 
@@ -77,7 +98,11 @@ adminServicesRouter.put("/:id", async (req, res) => {
     const data = payload(req.body as Record<string, unknown>, title);
     const item = await prisma.service.update({
       where: { id: req.params.id },
-      data: { ...data, image: data.image || existing.image },
+      data: {
+        ...data,
+        image: data.image || existing.image,
+        video: data.video || existing.video,
+      },
     });
     res.json(item);
   } catch {
@@ -126,3 +151,20 @@ adminServicesRouter.post(
     }
   }
 );
+
+adminServicesRouter.post("/:id/video", acceptVideo, async (req, res) => {
+  if (!req.file) {
+    res.status(400).json({ error: "Video file is required" });
+    return;
+  }
+  try {
+    const video = await storeVideo(req.file);
+    const item = await prisma.service.update({
+      where: { id: req.params.id },
+      data: { video },
+    });
+    res.json(item);
+  } catch {
+    res.status(404).json({ error: "Service not found" });
+  }
+});
