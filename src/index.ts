@@ -27,6 +27,9 @@ app.use(
       "http://localhost:3000,http://localhost:5173,https://oyimedia.com,https://www.oyimedia.com")
       .split(",")
       .map((origin) => origin.trim()),
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Authorization", "Content-Type"],
+    maxAge: 86400,
   })
 );
 app.use(express.json({ limit: "5mb" }));
